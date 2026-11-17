@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD with Approval
 
 on: [push, pull_request]
 
@@ -12,3 +12,33 @@ jobs:
           node-version: '20'
       - run: npm install
       - run: npm test
+      - name: Package app
+        run: |
+          mkdir -p dist
+          cp app.js package.json dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-package
+          path: dist/
+
+  staging:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-package
+          path: dist/
+      - run: echo "Deploying to staging" && ls -la dist/
+
+  production:
+    needs: staging
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-package
+          path: dist/
+      - run: echo "Deploying to production" && ls -la dist/
